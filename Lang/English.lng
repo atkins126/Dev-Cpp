@@ -351,10 +351,12 @@ Ver=1
 27006=Sets to System HighlightText value
 27007=Sets to WhiteSpace value
 27008=Show function hints
+27070=New Document Encoding:
 27009=Hint: use Ctrl+Scroll to edit text size
 27010=Editor
 27011=Font:
 27012=Size:
+27012=Use font ligatures is available
 27013=Editor Font
 27014=Gutter
 27015=Auto size
@@ -605,6 +607,7 @@ Ver=1
 43002=C++ compiler
 43003=Compiler:
 43004=Output
+43005=Make
 
 
 44001=Support all ANSI standard C programs (-ansi)
@@ -938,7 +941,8 @@ Ver=1
 62016=Question
 62017=Compilation successful
 62018=Compilation aborted by user
-62019=Line:%6d               Col:%6d               Sel:%6d               Lines:%6d               Length:%6d
+62019=Line:%20d Col:%20d Sel:%20d Lines:%20d Length:%20d
+62019_1=Line:%6d               Col:%6d               Sel:%6d               Lines:%6d               Length:%6d
 62020=Done parsing
 62021=Found %d matches
 62022=Done parsing in %g seconds
@@ -1142,6 +1146,7 @@ Ver=1
 73005=Language standard (-std)
 73006=Compile with the following pointer width (-mx)
 73007=Optimize less, while maintaining full compatibility (-mtune)
+73008=Concurrent compilation processes (-j)
 
 
 74001=Compiler:
@@ -1257,5 +1262,3 @@ Ver=1
 79019=Powered by %s
 79020=Max. line length:
 79021=// Could not find the AStyle output file:<CR>// %s
-79022=Use font ligatures is available
-79023=New Document Encoding:

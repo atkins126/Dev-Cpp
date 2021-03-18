@@ -578,9 +578,9 @@ type
     SpeedButton4: TSpeedButton;
     RichEdit0: TRichEdit;
     ClassBrowser: TClassBrowser;
-    Panel1: TPanel;
-    SpeedButton5: TSpeedButton;
-    SpeedButton6: TSpeedButton;
+    ConsolePanel: TPanel;
+    CMDSpeedButton: TSpeedButton;
+    PSSpeedButton: TSpeedButton;
     actCMD: TAction;
     actPowerShell: TAction;
     ConsolePopupMenu: TPopupMenu;
@@ -594,6 +594,16 @@ type
     PanelDescRun: TPanel;
     PanelDescCompile: TPanel;
     PanelDescClear: TPanel;
+    G1SpeedButton: TSpeedButton;
+    G2SpeedButton: TSpeedButton;
+    G3SpeedButton: TSpeedButton;
+    actGeneric1CMD: TAction;
+    actGeneric2CMD: TAction;
+    actGeneric3CMD: TAction;
+    OpenConsoleDialog: TOpenDialog;
+    GenericCMDPopupMenu: TPopupMenu;
+    actGenericSet: TAction;
+    SetCMDMNU: TMenuItem;
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormDestroy(Sender: TObject);
     procedure ToggleBookmarkClick(Sender: TObject);
@@ -612,6 +622,7 @@ type
     procedure actSaveAsExecute(Sender: TObject);
     procedure actSaveAllExecute(Sender: TObject);
     procedure actCloseExecute(Sender: TObject);
+    procedure actCloseExecuteByTab(Sender: TObject; CloseEditor:TEditor = nil);
     procedure actCloseAllExecute(Sender: TObject);
     procedure actCloseProjectExecute(Sender: TObject);
     procedure actExportHTMLExecute(Sender: TObject);
@@ -873,6 +884,10 @@ type
     procedure actCMDExecute(Sender: TObject);
     procedure actPowerShellExecute(Sender: TObject);
     procedure actConsoleCloseExecute(Sender: TObject);
+    procedure actGeneric1CMDExecute(Sender: TObject);
+    procedure actGeneric2CMDExecute(Sender: TObject);
+    procedure actGeneric3CMDExecute(Sender: TObject);
+    procedure SetCMDMNUClick(Sender: TObject);
   private
     FCloseButtonMouseDownTab: TCloseTabSheet;
     FCloseButtonShowPushed: Boolean;
@@ -933,6 +948,8 @@ type
     procedure AddFileRTB(RBName: TRichEdit; aFileName: string; aDirection: string);
     procedure OpenFileProject(s: string; AEncoding: TEncoding = nil);
     procedure ResizeWelcomeComponent;
+
+    procedure ExecuteGenericConsole(Sender: TObject);
 
     procedure PageControlCloseButtonDrawTab(Control: TCustomTabControl; TabIndex: Integer;
       const Rect: TRect; Active: Boolean);
@@ -1096,6 +1113,13 @@ begin
 
   SaveOptions;
 
+  //  --  --  --  --  --  --  --  --  --  --  --  --  --
+  //      This is a cheat.    Also don't hard-code 'Windows10'.
+  //  --  --  --  --  --  --  --  --  --  --  --  --  --
+      MainForm.Visible := false;
+      TStyleManager.TrySetStyle('Windows10');
+  //  --  --  --  --  --  --  --  --  --  --  --  --  --
+
   Action := caFree;
 end;
 
@@ -1146,6 +1170,31 @@ begin
 
   CloneMenu(ToggleBookmarksItem, TogglebookmarksPopItem);
   CloneMenu(GotoBookmarksItem, GotobookmarksPopItem);
+end;
+
+procedure TMainForm.SetCMDMNUClick(Sender: TObject);
+var
+  LCommandLine: String;
+begin
+  case TSpeedButton(((Sender as TMenuItem).GetParentMenu as TPopupMenu).PopupComponent).Tag of
+    1: LCommandLine := devExternalPrograms.GenericCMD1;
+    2: LCommandLine := devExternalPrograms.GenericCMD2;
+    3: LCommandLine := devExternalPrograms.GenericCMD3;
+  end;
+
+  if OpenConsoleDialog.Execute then begin
+    case TSpeedButton(((Sender as TMenuItem).GetParentMenu as TPopupMenu).PopupComponent).Tag of
+      1: begin
+        devExternalPrograms.GenericCMD1 := OpenConsoleDialog.FileName;
+      end;
+      2: begin
+        devExternalPrograms.GenericCMD2 := OpenConsoleDialog.FileName;
+      end;
+      3: begin
+        devExternalPrograms.GenericCMD3 := OpenConsoleDialog.FileName;
+      end;
+    end;
+  end;
 end;
 
 procedure TMainForm.SetHints;
@@ -2193,10 +2242,18 @@ begin
 end;
 
 procedure TMainForm.actCloseExecute(Sender: TObject);
+begin
+  actCloseExecuteByTab(Sender);
+end;
+
+procedure TMainForm.actCloseExecuteByTab(Sender: TObject; CloseEditor:TEditor = nil);
 var
   e: TEditor;
 begin
-  e := fEditorList.GetEditor;
+  if CloseEditor = nil then
+    e := fEditorList.GetEditor
+  else
+    e := CloseEditor;
   if Assigned(e) then
     fEditorList.CloseEditor(e);
 
@@ -3408,6 +3465,10 @@ begin
 
       // Rebuild recent file list (max count could have changed
       dmMain.RebuildMRU;
+    end;
+  finally
+    Close;
+  end;
       //Load Delphi Style
       if devData.StyleChange then
       begin
@@ -3419,10 +3480,6 @@ begin
         else
           Loadtheme;
       end;
-    end;
-  finally
-    Close;
-  end;
 end;
 
 procedure TMainForm.actUpdatePageCount(Sender: TObject);
@@ -4451,7 +4508,7 @@ begin
 
     if Button = mbLeft then
     begin
-      for I := 0 to PageControl.PageCount - 1 do
+      for I := PageControl.PageCount - 1 downto 0 do            // tabs can disappear 
       begin
         if not (PageControl.Pages[i] is TCloseTabSheet) then Continue;
         TabSheet:=PageControl.Pages[i] as TCloseTabSheet;
@@ -6898,6 +6955,75 @@ begin
   end;
 end;
 
+procedure TMainForm.ExecuteGenericConsole(Sender: TObject);
+var
+  LCommandLine: String;
+begin
+  case TAction(Sender).Tag of
+    1: LCommandLine := devExternalPrograms.GenericCMD1;
+    2: LCommandLine := devExternalPrograms.GenericCMD2;
+    3: LCommandLine := devExternalPrograms.GenericCMD3;
+  end;
+
+  if LCommandLine='' then begin
+    if OpenConsoleDialog.Execute then begin
+      case TAction(Sender).Tag of
+        1: begin
+          devExternalPrograms.GenericCMD1 := OpenConsoleDialog.FileName;
+          LCommandLine := devExternalPrograms.GenericCMD1;
+        end;
+        2: begin
+          devExternalPrograms.GenericCMD2 := OpenConsoleDialog.FileName;
+          LCommandLine := devExternalPrograms.GenericCMD2;
+        end;
+        3: begin
+          devExternalPrograms.GenericCMD3 := OpenConsoleDialog.FileName;
+          LCommandLine := devExternalPrograms.GenericCMD3;
+        end;
+      end;
+
+    end;
+  end;
+
+  if LCommandLine<>'' then begin
+
+    var ConsoleFrameProc: TProc<TConsoleAppHost, Boolean> :=
+      procedure (AFrame: TConsoleAppHost; AIsSuccess: Boolean)
+      begin
+        if AIsSuccess then
+        begin
+          var NewTab := TTabSheet.Create(pcConsoleHost);
+          NewTab.PageControl := pcConsoleHost;
+          NewTab.Assign(AFrame);
+        end
+        else
+          for var i := 0 to pcConsoleHost.PageCount - 1 do
+            if pcConsoleHost.Pages[i].Tag = NativeInt(AFrame) then
+            begin
+              pcConsoleHost.Pages[i].Free;
+              Break;
+            end;
+      end;
+
+    TConsoleAppHost.NewHost(LCommandLine, TAction(Sender).Caption, ConsoleFrameProc, 20);
+  end;
+end;
+
+procedure TMainForm.actGeneric1CMDExecute(Sender: TObject);
+begin
+  ExecuteGenericConsole(Sender);
+end;
+
+procedure TMainForm.actGeneric2CMDExecute(Sender: TObject);
+begin
+  ExecuteGenericConsole(Sender);
+end;
+
+procedure TMainForm.actGeneric3CMDExecute(Sender: TObject);
+begin
+  ExecuteGenericConsole(Sender);
+end;
+
 procedure TMainForm.actGotoBreakPointExecute(Sender: TObject);
 var
   e: TEditor;
@@ -7191,18 +7317,22 @@ begin
   LabelView.Left := (PageControlPanel.Width div 4) - (LabelView.Width + 30);
   LabelDocumentation.Left := (PageControlPanel.Width div 4) - 23;
   LabelHotkeys.Left := (PageControlPanel.Width div 4) - (LabelHotkeys.Width div 2);
-  LabelOpen.Left := (PageControlPanel.Width div 4) - 35;
-  LabelSave.Left := (PageControlPanel.Width div 4) - 33;
-  LabelZoom.Left := (PageControlPanel.Width div 4) - 38;
-  LabelRun.Left := (PageControlPanel.Width div 4) - 28;
-  LabelCompile.Left := (PageControlPanel.Width div 4) - 50;
-  LabelClear.left := (PageControlPanel.Width div 4) - 34;
-  PanelDescOpen.Left := (PageControlPanel.Width div 4) + 18;
-  PanelDescSave.Left := (PageControlPanel.Width div 4) + 18;
-  PanelDescZoom.Left := (PageControlPanel.Width div 4) + 18;
-  PanelDescRun.Left := (PageControlPanel.Width div 4) + 18;
-  PanelDescCompile.Left := (PageControlPanel.Width div 4) + 18;
-  PanelDescClear.Left := (PageControlPanel.Width div 4) + 18;
+
+  var  adj := 45;
+  LabelOpen   .Left     := (PageControlPanel.Width div 4) - adj - LabelOpen   .width;
+  LabelSave   .Left     := (PageControlPanel.Width div 4) - adj - LabelSave   .width;
+  LabelZoom   .Left     := (PageControlPanel.Width div 4) - adj - LabelZoom   .width;
+  LabelRun    .Left     := (PageControlPanel.Width div 4) - adj - LabelRun    .width;
+  LabelCompile.Left     := (PageControlPanel.Width div 4) - adj - LabelCompile.width;
+  LabelClear  .left     := (PageControlPanel.Width div 4) - adj - LabelClear  .width;
+
+  PanelDescOpen   .Left := (PageControlPanel.Width div 4) + adj;
+  PanelDescSave   .Left := (PageControlPanel.Width div 4) + adj;
+  PanelDescZoom   .Left := (PageControlPanel.Width div 4) + adj;
+  PanelDescRun    .Left := (PageControlPanel.Width div 4) + adj;
+  PanelDescCompile.Left := (PageControlPanel.Width div 4) + adj;
+  PanelDescClear  .Left := (PageControlPanel.Width div 4) + adj;
+
   ButtonNewDocument.Left := Max(50, (PanelRight.Width div 2) - ButtonNewDocument.Width - (ButtonOpenDocument.Width div 2) - 65);
   ButtonOpenDocument.Left := ButtonNewDocument.Left + ButtonNewDocument.Width + 25;
   ButtonOptions.Left := ButtonOpenDocument.Left + ButtonOpenDocument.Width + 25;
@@ -7335,12 +7465,13 @@ var
   I: Integer;
   PageControl: TPageControl;
   TabSheet: TCloseTabSheet;
+  e: TEditor;
 begin
   PageControl := Sender as TPageControl;
 
   if Button = mbLeft then
   begin
-    for I := 0 to PageControl.PageCount - 1 do
+    for I := PageControl.PageCount - 1 downto 0 do            // tabs can disappear
     begin
       if not (PageControl.Pages[i] is TCloseTabSheet) then Continue;
       TabSheet:=PageControl.Pages[i] as TCloseTabSheet;
@@ -7349,6 +7480,8 @@ begin
         FCloseButtonMouseDownTab := TabSheet;
         FCloseButtonShowPushed := True;
         PageControl.Repaint;
+        e := fEditorList.GetEditor(I,PageControl);            // determine tab being closed
+        actCloseExecuteByTab(Sender, e);
       end;
     end;
   end;
@@ -7398,7 +7531,7 @@ begin
         TThread.Synchronize(nil, procedure begin
           //FCloseButtonMouseDownTab.DoClose;
           //FCloseButtonMouseDownTab := nil;
-          actCloseExecute(Sender);
+          //actCloseExecute(Sender);                //  can close wrong tab
           PageControl.Repaint;
         end);
       end);
